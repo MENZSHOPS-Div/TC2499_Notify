@@ -43,13 +43,26 @@ async function replyMessage(replyToken, message) {
 app.post("/webhook", async (req, res) => {
   const events = req.body.events;
 
+   const events = req.body.events;
+  if (!events) return res.sendStatus(200);
+
   for (const event of events) {
-    const userId = event.source?.userId;
+    const source = event.source;
     const replyToken = event.replyToken;
 
-    if (userId) {
-      saveUserId(userId);
-      await replyMessage(replyToken, "📌 บันทึก ID ของคุณแล้วครับ");
+    // เช็คว่าเป็นข้อความจาก user
+    if (source?.userId) {
+      saveUserId(source.userId); // เก็บ userId
+    }
+
+    // เช็คว่าเป็นข้อความจาก group
+    if (source?.groupId) {
+      saveGroupId(source.groupId); // เก็บ groupId
+    }
+
+    // ตอบกลับ
+    if (replyToken) {
+      await replyMessage(replyToken, "📌 บันทึก ID ของคุณหรือกลุ่มแล้วครับ");
     }
   }
 
