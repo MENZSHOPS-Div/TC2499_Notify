@@ -41,8 +41,6 @@ async function replyMessage(replyToken, message) {
 
 // Webhook รับ event จาก LINE
 app.post("/webhook", async (req, res) => {
-  const events = req.body.events;
-
    const events = req.body.events;
   if (!events) return res.sendStatus(200);
 
