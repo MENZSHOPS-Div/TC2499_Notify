@@ -8,12 +8,19 @@ const app = express();
 app.use(bodyParser.json());
 
 const TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
-const DB_PATH = "./user_ids.json";
+const USER_DB_PATH = "./user_ids.json";
+const GROUP_DB_PATH = "./group_ids.json";
 
-// โหลด userId จากไฟล์ (หรือคืน [] หากไม่มี)
+// โหลด userId จากไฟล์
 function loadUserIds() {
-  if (!fs.existsSync(DB_PATH)) return [];
-  return JSON.parse(fs.readFileSync(DB_PATH));
+  if (!fs.existsSync(USER_DB_PATH)) return [];
+  return JSON.parse(fs.readFileSync(USER_DB_PATH));
+}
+
+// โหลด groupId จากไฟล์
+function loadGroupIds() {
+  if (!fs.existsSync(GROUP_DB_PATH)) return [];
+  return JSON.parse(fs.readFileSync(GROUP_DB_PATH));
 }
 
 // บันทึก userId ใหม่
@@ -21,8 +28,18 @@ function saveUserId(userId) {
   const userIds = loadUserIds();
   if (!userIds.includes(userId)) {
     userIds.push(userId);
-    fs.writeFileSync(DB_PATH, JSON.stringify(userIds, null, 2));
+    fs.writeFileSync(USER_DB_PATH, JSON.stringify(userIds, null, 2));
     console.log(`✅ Saved new userId: ${userId}`);
+  }
+}
+
+// บันทึก groupId ใหม่
+function saveGroupId(groupId) {
+  const groupIds = loadGroupIds();
+  if (!groupIds.includes(groupId)) {
+    groupIds.push(groupId);
+    fs.writeFileSync(GROUP_DB_PATH, JSON.stringify(groupIds, null, 2));
+    console.log(`✅ Saved new groupId: ${groupId}`);
   }
 }
 
@@ -41,24 +58,24 @@ async function replyMessage(replyToken, message) {
 
 // Webhook รับ event จาก LINE
 app.post("/webhook", async (req, res) => {
-   const events = req.body.events;
+  const events = req.body.events;
   if (!events) return res.sendStatus(200);
 
   for (const event of events) {
     const source = event.source;
     const replyToken = event.replyToken;
 
-    // เช็คว่าเป็นข้อความจาก user
+    // เก็บ userId ถ้ามี
     if (source?.userId) {
-      saveUserId(source.userId); // เก็บ userId
+      saveUserId(source.userId);
     }
 
-    // เช็คว่าเป็นข้อความจาก group
+    // เก็บ groupId ถ้ามี
     if (source?.groupId) {
-      saveGroupId(source.groupId); // เก็บ groupId
+      saveGroupId(source.groupId);
     }
 
-    // ตอบกลับ
+    // ตอบกลับข้อความ
     if (replyToken) {
       await replyMessage(replyToken, "📌 บันทึก ID ของคุณหรือกลุ่มแล้วครับ");
     }
@@ -67,9 +84,14 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
-// Endpoint ทดสอบดู userId ที่บันทึกไว้
+// Endpoint ดู userId
 app.get("/users", (req, res) => {
   res.json(loadUserIds());
+});
+
+// Endpoint ดู groupId
+app.get("/groups", (req, res) => {
+  res.json(loadGroupIds());
 });
 
 // เริ่มเซิร์ฟเวอร์
